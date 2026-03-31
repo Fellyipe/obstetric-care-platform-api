@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: obstetric-care-platform-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_URL
+        sync: false
+      - key: DB_KEY
+        sync: false
+      - key: DB_SERVICE_KEY
+        sync: false
