@@ -1,4 +1,4 @@
-import { db } from "../../config/database.js";
+import { supabase } from "../../config/supabase.js";
 import { idSchema } from "../../schemas/common.schema.js";
 import { ForbiddenError, NotFoundError } from "../../utils/errors.js";
 import { validate } from "../../utils/validate.js";
@@ -9,7 +9,7 @@ const LIMITED_FIELDS = "id, week, feeling, entry_date, created_at";
 
 // Verifica se determinado doctor possui acesso aos registros de patient
 const getAccessLevel = async (patientId) => {
-  const { data, error } = await db.rpc("get_patient_diary_sharing", {
+  const { data, error } = await supabase.rpc("get_patient_diary_sharing", {
     p_patient_id: patientId,
   });
 
@@ -27,7 +27,7 @@ export const listPatientDiary = async (req, res, next) => {
 
     const fields = access.sharesDiary ? FULL_FIELDS : LIMITED_FIELDS;
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("diary_entries")
       .select(fields)
       .eq("user_id", patient_id)
@@ -55,7 +55,7 @@ export const getPatientDiaryEntry = async (req, res, next) => {
 
     const fields = access.sharesDiary ? FULL_FIELDS : LIMITED_FIELDS;
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("diary_entries")
       .select(fields)
       .eq("id", id)

@@ -1,4 +1,4 @@
-import { db } from "../../config/database.js";
+import { supabase } from "../../config/supabase.js";
 import { idSchema } from "../../schemas/common.schema.js";
 import {
   createDiaryEntrySchema,
@@ -6,14 +6,13 @@ import {
 } from "../../schemas/diary.schema.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { validate } from "../../utils/validate.js";
-import { calculateCurrentWeek } from "../../utils/weekCalculator.js";
 
 export const listDiaryEntries = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { record_id } = req.query;
 
-    let query = db
+    let query = supabase
       .from("diary_entries")
       .select("id, week, feeling, content, entry_date, created_at")
       .eq("user_id", userId)
@@ -36,7 +35,7 @@ export const getDiaryEntry = async (req, res, next) => {
   try {
     const id = validate(idSchema, req.params);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("diary_entries")
       .select("*")
       .eq("id", id)
@@ -56,7 +55,7 @@ export const createDiaryEntry = async (req, res, next) => {
     const userId = req.user.id;
     const body = validate(createDiaryEntrySchema, req.body);
 
-    const { data: record, error: recordError } = await db
+    const { data: record, error: recordError } = await supabase
       .from("records")
       .select("start_date, end_date")
       .eq("id", body.record_id)
@@ -67,16 +66,22 @@ export const createDiaryEntry = async (req, res, next) => {
     if (recordError || !record)
       throw new NotFoundError("Active record not found");
 
-    const currentWeek = calculateCurrentWeek(record.start_date);
+    const { weeks, isValid } = getGestationalInfo(record);
 
-    const { data, error } = await db
+    if (!isValid) {
+      return res
+        .status(422)
+        .json({ error: "Semana gestacional fora do intervalo válido" });
+    }
+
+    const { data, error } = await supabase
       .from("diary_entries")
       .insert({
         user_id: userId,
         record_id: body.record_id,
         content: body.content,
         feeling: body.feeling,
-        week: currentWeek,
+        week: weeks,
         entry_date: body.entry_date ?? new Date().toISOString(),
       })
       .select()
@@ -97,7 +102,7 @@ export const updateDiaryEntry = async (req, res, next) => {
     const id = validate(idSchema, req.params);
     const body = validate(updateDiaryEntrySchema, req.body);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("diary_entries")
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -118,7 +123,7 @@ export const deleteDiaryEntry = async (req, res, next) => {
   try {
     const id = validate(idSchema, req.params);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("diary_entries")
       .delete()
       .eq("id", id)

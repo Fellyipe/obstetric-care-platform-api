@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema } from "../common.schema";
+import { idSchema } from "../common.schema.js";
 
 export const categorySchema = z.object({
   title: z.string().min(1).max(100),

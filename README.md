@@ -16,7 +16,7 @@ O backend foi projetado para suportar essa arquitetura multi-role e multi-plataf
 
 Além do que está nesta demo, o sistema real inclui módulos como:
 
-- **Ficha médica** 
+- **Ficha médica**
 - **Diário**
 - **Consultas**
 - **Artigos informativos**
@@ -29,14 +29,16 @@ Entre outras funcionalidades.
 
 ## Stack
 
-| Camada | Tecnologia |
-|---|---|
-| Runtime | Node.js 18+ (ES Modules) |
-| Framework | Express |
-| Banco de Dados + Auth | Supabase (PostgreSQL + Auth) |
-| Validação | Zod |
-| Documentação | Swagger / OpenAPI 3.0 |
-| Upload de Arquivos | Multer + Supabase Storage |
+| Camada                | Tecnologia                             |
+| --------------------- | -------------------------------------- |
+| Runtime               | Node.js 18+ (ES Modules)               |
+| Framework             | Express                                |
+| Banco de Dados + Auth | Supabase (PostgreSQL + Auth)           |
+| Validação             | Zod                                    |
+| Documentação          | Swagger / OpenAPI 3.0                  |
+| Upload de Arquivos    | Multer + Supabase Storage              |
+| Testes                | Jest + Supertest (Supabase CLI/Docker) |
+| CI/CD                 | GitHub Actions (Automação + Deploy)    |
 
 ---
 
@@ -45,6 +47,9 @@ Entre outras funcionalidades.
 Vários arquivos foram removidos ou tiveram seu código omitido.
 
 ```
+.github/
+└── workflows
+    └──ci.yml
 src/
 ├── config/
 │   ├── constants.js
@@ -93,6 +98,14 @@ src/
 │   ├── validate.js
 │   └── storage.js
 └── app.js
+supabase/
+├── config.toml
+tests/
+├── auth
+│   └── signup.test.js
+└── helpers
+    ├── auth.helper.js
+    └── setup.js
 ```
 
 ---
@@ -105,8 +118,8 @@ Cada perfil de usuário possui seu próprio namespace de rotas com autenticaçã
 
 ```js
 app.use("/api/patient", authenticate, authorize("patient"), patientRoutes);
-app.use("/api/doctor",  authenticate, authorize("doctor"),  doctorRoutes);
-app.use("/api/admin",   authenticate, authorize("admin"),   adminRoutes);
+app.use("/api/doctor", authenticate, authorize("doctor"), doctorRoutes);
+app.use("/api/admin", authenticate, authorize("admin"), adminRoutes);
 ```
 
 ### Endpoints de autenticação separados por plataforma
@@ -115,31 +128,25 @@ Login e signup são separados por plataforma. O servidor decide quais roles pode
 
 ### Controle de acesso em três camadas
 
-| Camada | Responsabilidade |
-|---|---|
-| Middleware (`authorize`) | Nível de rota: quem pode acessar o endpoint |
-| RLS (PostgreSQL) | Nível de linha: quais registros o usuário pode ler ou escrever |
-| Controller | Nível de coluna: quais campos são retornados por role |
-
-## Padrões Demonstrados
-
-- **Tratamento centralizado de erros** — todos os erros propagam via `next(error)` para um único handler; controllers nunca formatam respostas de erro diretamente
-- **Classes de erro customizadas** — `ValidationError`, `NotFoundError`, `ForbiddenError` mapeiam diretamente para códigos HTTP
-- **Validação com Zod** e helper `validate()` reutilizável que produz mensagens de erro por campo de forma consistente
-- **Soft delete** em todas as entidades de conteúdo — nada é removido fisicamente, `is_active` controla visibilidade
-- **Operações idempotentes** — ex: marcar como lido usa `upsert` com tratamento de conflito
-- **URLs assinadas** para buckets privados — arquivos sensíveis (fotos de ultrassom, diário) nunca são servidos por URL pública
-- **Utilitários de domínio desacoplados** — cálculos de semana gestacional vivem em `utils/` e são reutilizados em múltiplos módulos
-- **Reuso de schemas** com `schema.partial()` para endpoints de atualização parcial
+| Camada                   | Responsabilidade                                               |
+| ------------------------ | -------------------------------------------------------------- |
+| Middleware (`authorize`) | Nível de rota: quem pode acessar o endpoint                    |
+| RLS (PostgreSQL)         | Nível de linha: quais registros o usuário pode ler ou escrever |
+| Controller               | Nível de coluna: quais campos são retornados por role          |
 
 ---
 
 ## Rodando Localmente
 
+Este projeto utiliza Docker e Supabase CLI para garantir um ambiente de desenvolvimento e teste idêntico ao de produção, sem necessidade de configuração manual de banco de dados.
+
 ```bash
+# Inicie os Containers
+npx supabase start
 npm install
 cp .env.example .env
-# Preencha com suas credenciais
+# Preencha as chaves com os valores gerados
+npx supabase status
 npm run dev
 ```
 
@@ -153,9 +160,8 @@ Swagger UI disponível em `http://localhost:3000/api/docs`.
 PORT=3000
 NODE_ENV=development
 
-DB_URL=sua_url_do_banco
-DB_KEY=sua_anon_key
-DB_SERVICE_KEY=sua_service_role_key
+SUPABASE_URL=sua_url_do_banco
+SUPABASE_KEY=sua_publishable_key
 ```
 
 ---

@@ -1,4 +1,3 @@
-import { db, dbWithAuth } from "../config/database.js";
 import { ValidationError } from "../utils/errors.js";
 import { validate } from "../utils/validate.js";
 import {
@@ -7,20 +6,24 @@ import {
   refreshTokenSchema,
 } from "../schemas/auth.schema.js";
 import { emailSchema, passwordSchema } from "../schemas/common.schema.js";
+import { supabase } from "../config/supabase.js";
 
 const performLogin = async (email, password, allowedRoles) => {
-  const { data, error } = await db.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
 
   if (error) throw new ValidationError(error.message);
 
-  const { data: profile } = await db
+  const { data: profile } = await supabase
     .from("profiles")
     .select("role, name, email")
     .eq("user_id", data.user.id)
     .single();
 
   if (!allowedRoles.includes(profile.role)) {
-    await dbWithAuth(data.session.access_token).auth.signOut();
+    await supabaseWithAuth(data.session.access_token).auth.signOut();
     throw new ValidationError("Access not allowed on this platform");
   }
 
@@ -33,7 +36,7 @@ export const signupMobile = async (req, res, next) => {
   try {
     const { email, password } = validate(signupSchema, req.body);
 
-    const { data, error } = await db.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { role: "patient" } },
@@ -53,7 +56,7 @@ export const signupWeb = async (req, res, next) => {
   try {
     const { email, password } = validate(signupSchema, req.body);
 
-    const { data, error } = await db.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { role: "doctor" } },
@@ -73,7 +76,7 @@ export const signupAdmin = async (req, res, next) => {
   try {
     const { email, password } = validate(signupSchema, req.body);
 
-    const { data, error } = await db.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { role: "admin" } },
@@ -121,7 +124,7 @@ export const loginAdmin = async (req, res, next) => {
 
 export const logout = async (req, res, next) => {
   try {
-    const { error } = await dbWithAuth(req.accessToken).auth.signOut();
+    const { error } = await supabaseWithAuth(req.accessToken).auth.signOut();
     if (error) throw new ValidationError(error.message);
     res.json({ message: "Logged out successfully" });
   } catch (error) {
@@ -132,7 +135,9 @@ export const logout = async (req, res, next) => {
 export const refreshToken = async (req, res, next) => {
   try {
     const { refresh_token } = validate(refreshTokenSchema, req.body);
-    const { data, error } = await db.auth.refreshSession({ refresh_token });
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token,
+    });
     if (error) throw new ValidationError(error.message);
 
     res.json({
@@ -148,7 +153,7 @@ export const refreshToken = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = validate(emailSchema, req.body);
-    const { error } = await db.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw new ValidationError(error.message);
     res.json({ message: "Recovery email sent" });
   } catch (error) {
@@ -159,7 +164,7 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { password } = validate(passwordSchema, req.body);
-    const { data, error } = await db.auth.updateUser({ password });
+    const { data, error } = await supabase.auth.updateUser({ password });
     if (error) throw new ValidationError(error.message);
     res.json({ message: "Password updated successfully", user: data.user });
   } catch (error) {

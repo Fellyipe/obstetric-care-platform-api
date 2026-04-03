@@ -3,7 +3,7 @@ import {
   datetimeSchema,
   idSchema,
   paginationSchema,
-} from "../common.schema.js";
+} from "./common.schema.js";
 
 export const createDiaryEntrySchema = z.object({
   pregnancy_id: idSchema,

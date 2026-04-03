@@ -1,4 +1,3 @@
-import { db } from "../../config/database.js";
 import { validate } from "../../utils/validate.js";
 import { NotFoundError } from "../../utils/errors.js";
 import { uploadFile, getPublicUrl } from "../../utils/storage.js";
@@ -10,6 +9,7 @@ import {
   contentFilterSchema,
 } from "../../schemas/admin/content.schema.js";
 import { idSchema } from "../../schemas/common.schema.js";
+import { supabase } from "../../config/supabase.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -26,7 +26,7 @@ export const uploadImageMiddleware = upload.single("image");
 
 export const listCategories = async (req, res, next) => {
   try {
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("categories")
       .select("*, content(id)")
       .order("order", { ascending: true });
@@ -49,7 +49,7 @@ export const createCategory = async (req, res, next) => {
   try {
     const body = validate(categorySchema, req.body);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("categories")
       .insert(body)
       .select()
@@ -68,7 +68,7 @@ export const updateCategory = async (req, res, next) => {
     const id = validate(idSchema, req.params);
     const body = validate(categorySchema.partial(), req.body);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("categories")
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -88,7 +88,7 @@ export const deleteCategory = async (req, res, next) => {
   try {
     const id = validate(idSchema, req.params);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("categories")
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -109,7 +109,7 @@ export const reorderCategories = async (req, res, next) => {
     const items = validate(reorderSchema, req.body);
 
     const updates = items.map(({ id, order }) =>
-      db
+      supabase
         .from("categories")
         .update({ order, updated_at: new Date().toISOString() })
         .eq("id", id),
@@ -150,7 +150,7 @@ export const uploadCategoryImage = async (req, res, next) => {
 
     const imageUrl = getPublicUrl("content", path);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("categories")
       .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -170,7 +170,7 @@ export const listContent = async (req, res, next) => {
   try {
     const filters = validate(contentFilterSchema, req.query);
 
-    let query = db
+    let query = supabase
       .from("content")
       .select("*")
       .order("order", { ascending: true });
@@ -196,7 +196,7 @@ export const createContent = async (req, res, next) => {
   try {
     const body = validate(contentSchema, req.body);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("content")
       .insert(body)
       .select()
@@ -214,7 +214,7 @@ export const updateContent = async (req, res, next) => {
     const id = validate(idSchema, req.params);
     const body = validate(contentSchema.partial(), req.body);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("content")
       .update({ ...body, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -234,7 +234,7 @@ export const deleteContent = async (req, res, next) => {
   try {
     const id = validate(idSchema, req.params);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("content")
       .update({ is_active: false, updated_at: new Date().toISOString() })
       .eq("id", id)
@@ -255,7 +255,7 @@ export const reorderContent = async (req, res, next) => {
     const items = validate(reorderSchema, req.body);
 
     const updates = items.map(({ id, order }) =>
-      db
+      supabase
         .from("content")
         .update({ order, updated_at: new Date().toISOString() })
         .eq("id", id),
@@ -296,7 +296,7 @@ export const uploadContentImage = async (req, res, next) => {
 
     const imageUrl = getPublicUrl("content", path);
 
-    const { data, error } = await db
+    const { data, error } = await supabase
       .from("content")
       .update({ image_url: imageUrl, updated_at: new Date().toISOString() })
       .eq("id", id)

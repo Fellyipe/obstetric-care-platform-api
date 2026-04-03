@@ -1,19 +1,18 @@
 import express from "express";
 import {
   forgotPassword,
-  login,
   loginAdmin,
   loginMobile,
   loginWeb,
   logout,
   refreshToken,
   resetPassword,
-  signup,
   signupAdmin,
   signupMobile,
   signupWeb,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/authenticate.js";
+import { authorize } from "../middlewares/authorize.js";
 
 const router = express.Router();
 
@@ -106,7 +105,7 @@ router.post("/signup/web", signupWeb);
  * @swagger
  * /api/auth/signup/admin:
  *   post:
- *     summary: Criar conta admin (uso interno e testes)
+ *     summary: Criar conta admin (uso interno e testes, requer estar logado como admin)
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -139,7 +138,7 @@ router.post("/signup/web", signupWeb);
  *       400:
  *         description: Dados inválidos
  */
-router.post("/signup/admin", signupAdmin);
+router.post("/signup/admin", authenticate, authorize("admin"), signupAdmin);
 
 /**
  * @swagger
@@ -299,72 +298,6 @@ router.post("/login/web", loginWeb);
  *         description: Acesso não permitido nesta plataforma
  */
 router.post("/login/admin", loginAdmin);
-
-/**
- * @swagger
- * /api/auth/signup:
- *   post:
- *     summary: Criar nova conta
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               data:
- *                 type: object
- *                 required:
- *                   - name
- *                   - role
- *                 properties:
- *                   name:
- *                     type: string
- *                   role:
- *                     type: string
- *     responses:
- *       201:
- *         description: Usuário criado com sucesso
- *       400:
- *         description: Dados inválidos
- */
-router.post("/signup", signup);
-
-/**
- * @swagger
- * /api/auth/login:
- *   post:
- *     summary: Fazer login
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login bem-sucedido
- *       401:
- *         description: Credenciais inválidas
- */
-router.post("/login", login);
 
 /**
  * @swagger

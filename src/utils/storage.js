@@ -1,4 +1,4 @@
-import { supabase, supabaseWithAuth } from "../config/database.js";
+import { supabase, supabaseWithAuth } from "../config/supabase.js";
 
 export const uploadFile = async ({ bucket, path, file, accessToken }) => {
   const client = accessToken ? supabaseWithAuth(accessToken) : supabase;

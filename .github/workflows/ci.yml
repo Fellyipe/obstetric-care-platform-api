@@ -1,0 +1,67 @@
+name: CI — Test & Deploy
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Rodar testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Subir Supabase local
+        run: supabase start
+
+      - name: Aplicar migrations e seed
+        run: supabase db reset --local
+
+      - name: Capturar credenciais do Supabase local
+        id: supabase
+        run: |
+          echo "SUPABASE_URL=http://127.0.0.1:54321" >> $GITHUB_ENV
+          echo "SUPABASE_KEY=$(supabase status --output json | jq -r '.publishable_key')" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.secret_key')" >> $GITHUB_ENV
+          echo "PORT=3001" >> $GITHUB_ENV
+          echo "NODE_ENV=test" >> $GITHUB_ENV
+
+      - name: Rodar testes
+        run: npm test
+
+  deploy:
+    name: Deploy no Render
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger deploy no Render
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: env.RENDER_HOOK != ''
+        run: curl -X POST ${{ env.RENDER_HOOK }}
+
+      - name: Skip Deploy
+        env:
+          RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        if: env.RENDER_HOOK == ''
+        run: echo "Secret não configurada."

@@ -7,9 +7,7 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DB_URL
+      - key: SUPABASE_URL
         sync: false
-      - key: DB_KEY
-        sync: false
-      - key: DB_SERVICE_KEY
+      - key: SUPABASE_KEY
         sync: false
